@@ -1,17 +1,13 @@
 import hashlib
 import re
 import subprocess
-
-from flask import Flask, render_template, request, redirect, url_for, session, g, abort, send_file, flash
 import sqlite3
 import os
+from flask import Flask, render_template, request, redirect, url_for, session, g, abort, send_file, flash
 
 from werkzeug.utils import secure_filename
 
-#exec(open('db_maker.py').read())
-
-app = Flask(__name__)
-DATABASE = 'database.db'
+# exec(open('db_maker.py').read())
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'
@@ -45,7 +41,8 @@ def register():
         password = request.form['password']
 
         if len(password) < 8 or not re.match(r'(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*\W)', password):
-            flash('Пароль должен быть не менее 8 символов и включать цифры, заглавные и строчные буквы, а также специальные символы.')
+            flash(
+                'Пароль должен быть не менее 8 символов и включать цифры, заглавные и строчные буквы, а также специальные символы.')
             return redirect(url_for('register'))
 
         sha256 = hashlib.sha256()
@@ -126,13 +123,6 @@ def load_image():
             return 'Файл не найден', 404
     else:
         return 'Файл не найден', 404
-
-
-@app.teardown_appcontext
-def close_connection(exception):
-    db = getattr(g, '_database', None)
-    if db is not None:
-        db.close()
 
 
 @app.route('/set_status', methods=['POST'])
