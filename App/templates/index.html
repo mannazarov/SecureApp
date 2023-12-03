@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+    <h1>Главная страница</h1>
+    <h2>Галерея изображений</h2>
+
+    <!-- Кнопки фильтрации -->
+    <div class="filter-buttons">
+        <a href="{{ url_for('index', category='cat') }}">Cats</a>
+        <a href="{{ url_for('index', category='dog') }}">Dogs</a>
+        <a href="{{ url_for('index', category='rabbit') }}">Rabbits</a>
+        <a href="{{ url_for('index', category='hamster') }}">Hamsters</a>
+    </div>
+
+    <!-- Галерея изображений -->
+    <div class="image-gallery">
+        {% for image in images %}
+            <div>
+                <h2>{{ image[2] }}</h2>
+                <img src="{{ url_for('load_image', filename=image[3]) }}" alt="{{ image[4] }}" width="200" height="200">
+                <p>{{ image[4] }}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
