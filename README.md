@@ -190,6 +190,50 @@ def ping():
 ```
 
 ### e. Path Traversal
+#### Причина уязвимости:
+Уязвимость проявляется в функции load_image, которая используется для загрузки изображений:
+```
+@app.route('/loadImage')
+def load_image():
+    filename = request.args.get('filename')
+    if filename:
+        filepath = './static/images/' + filename
+        return send_file(filepath)
+    else:
+        return 'Файл не найден', 404
+```
+Пользовательский ввод (имя файла) напрямую конкатенируется с базовым путем к папке с изображениями. Если злоумышленник подставит в имя файла относительные пути (например, `../`), он сможет получить доступ к файлам, которые находятся за пределами директории `./static/images/`.
+
+#### Как исправить:
+**Ограничение доступа к файлам**: Прежде всего, надо убедиться, что путь к файлу ограничивает доступ только к предназначенной папке с изображениями.
+
+**Валидация входных данных**: Следует проверить, что имя файла не содержит недопустимых символов, таких как `../`, которые могут указывать на попытку path traversal.
+
+**Использование безопасных функций**: Стоит использовать функции, предоставляемые фреймворком, для безопасного объединения путей.
+
+
+```
+import os
+from werkzeug.utils import secure_filename
+
+@app.route('/loadImage')
+def load_image():
+    filename = request.args.get('filename')
+    if filename:
+        secure_name = secure_filename(filename)
+
+        filepath = os.path.join(app.root_path, 'static', 'images', secure_name)
+        if os.path.exists(filepath) and os.path.isfile(filepath):
+            return send_file(filepath)
+        else:
+            return 'Файл не найден', 404
+    else:
+        return 'Файл не найден', 404
+
+```
+
+В этом коде `secure_filename` из `Werkzeug` используется для очистки имени файла, а `os.path.join` для безопасного создания полного пути к файлу. Также добавлена проверка существования файла и его типа, чтобы предотвратить отправку несуществующих или недопустимых файлов.
+
 ### f.  Brute force
 
 ...

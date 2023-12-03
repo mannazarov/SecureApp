@@ -6,6 +6,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, g
 import sqlite3
 import os
 
+from werkzeug.utils import secure_filename
+
 #exec(open('db_maker.py').read())
 
 app = Flask(__name__)
@@ -115,8 +117,13 @@ def ping():
 def load_image():
     filename = request.args.get('filename')
     if filename:
-        filepath = './static/images/' + filename
-        return send_file(filepath)
+        secure_name = secure_filename(filename)
+
+        filepath = os.path.join(app.root_path, 'static', 'images', secure_name)
+        if os.path.exists(filepath) and os.path.isfile(filepath):
+            return send_file(filepath)
+        else:
+            return 'Файл не найден', 404
     else:
         return 'Файл не найден', 404
 
