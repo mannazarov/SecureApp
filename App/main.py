@@ -44,14 +44,14 @@ def register():
         username = request.form['username']
         password = request.form['password']
 
+        if len(password) < 8 or not re.match(r'(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*\W)', password):
+            flash('Пароль должен быть не менее 8 символов и включать цифры, заглавные и строчные буквы, а также специальные символы.')
+            return redirect(url_for('register'))
+
         sha256 = hashlib.sha256()
         data = username + password
         sha256.update(data.encode('utf-8'))
         secret = sha256.hexdigest()
-
-        if not re.fullmatch(r'\d{4}', password):
-            flash('Пароль должен состоять из 4 цифр.')
-            return redirect(url_for('register'))
 
         db = get_db()
         db.execute('INSERT INTO users (username, password, role, secret) VALUES (?, ?, ?, ?)',
