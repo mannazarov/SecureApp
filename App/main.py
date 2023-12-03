@@ -1,5 +1,7 @@
 import hashlib
 import re
+import subprocess
+
 from flask import Flask, render_template, request, redirect, url_for, session, g, abort, send_file, flash
 import sqlite3
 import os
@@ -101,7 +103,10 @@ def ping():
     if request.method == 'POST':
         ip_address = request.form.get('ip_address')
 
-        result = os.popen(f'ping -c 4 {ip_address}').read()
+        if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', ip_address):
+            result = subprocess.run(['ping', '-c', '4', ip_address], capture_output=True, text=True).stdout
+        else:
+            result = "Неверный формат IP адреса."
 
     return render_template('ping.html', result=result)
 

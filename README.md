@@ -89,6 +89,7 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
+        # Уязвимый SQL запрос, который проверяет и имя пользователя, и пароль
         query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
         db = get_db()
         user = db.execute(query).fetchone()
@@ -115,8 +116,8 @@ def login():
 ```
 
 
-#### Уязвимость SQLi в Функции index
-#### Причина Уязвимости:
+#### Уязвимость SQLi в функции index
+#### Причина уязвимости:
 Эта уязвимость находится в функции index, где категория выбирается из параметра запроса и вставляется напрямую в SQL запрос:
 ```
 @app.route('/')
@@ -131,7 +132,7 @@ def index():
 
 ```
 
-#### Как Исправить:
+#### Как исправить:
 Следует также использовать параметризованные запросы для защиты от SQL инъекций. 
 ```
 @app.route('/')
@@ -147,6 +148,47 @@ def index():
 ```
 
 ### d. OS command injection
+
+#### Причина уязвимости:
+Уязвимость возникает из-за того, что пользовательский ввод напрямую включается в команду, которая затем выполняется на сервере. 
+```
+@app.route('/ping', methods=['GET', 'POST'])
+def ping():
+    result = ""
+    if request.method == 'POST':
+        ip_address = request.form.get('ip_address')
+
+        # Уязвимое место: выполнение команды ping с пользовательским вводом
+        result = os.popen(f'ping -c 4 {ip_address}').read()
+
+    return render_template('ping.html', result=result)
+```
+
+Здесь ip_address берется напрямую из формы и вставляется в команду ping, которая выполняется на сервере. Если злоумышленник введет что-то вроде 127.0.0.1; malicious_command, то malicious_command также будет выполнена на сервере.
+
+#### Как исправить:
+Для предотвращения уязвимости OS Command Injection необходимо избегать прямого использования пользовательского ввода в системных командах. Вот несколько способов исправить эту уязвимость:
+
+**Использование безопасных функций**: Вместо os.popen, стоит использовать более безопасные функции, такие как subprocess.run, которые позволяют более точно контролировать выполнение команд и их аргументы.
+
+**Валидация входных данных**: Прежде чем использовать пользовательский ввод, убедитесь, что он соответствует ожидаемому формату (например, является действительным IP-адресом).
+
+
+```
+@app.route('/ping', methods=['GET', 'POST'])
+def ping():
+    result = ""
+    if request.method == 'POST':
+        ip_address = request.form.get('ip_address')
+
+        if re.match(r'^\d{1,3}(\.\d{1,3}){3}$', ip_address):
+            result = subprocess.run(['ping', '-c', '4', ip_address], capture_output=True, text=True).stdout
+        else:
+            result = "Неверный формат IP адреса."
+
+    return render_template('ping.html', result=result)
+```
+
 ### e. Path Traversal
 ### f.  Brute force
 
@@ -156,3 +198,4 @@ def index():
 > Опциональный раздел
 
 ...
+
