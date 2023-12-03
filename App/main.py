@@ -30,9 +30,7 @@ def close_connection(exception):
 
 @app.route('/logout')
 def logout():
-    # Удаляем пользователя из сессии
     session.pop('username', None)
-    # Перенаправляем на главную страницу или страницу входа
     return redirect(url_for('login'))
 
 
@@ -47,12 +45,10 @@ def register():
         sha256.update(data.encode('utf-8'))
         secret = sha256.hexdigest()
 
-        # Проверка пароля на соответствие требованиям
         if not re.fullmatch(r'\d{4}', password):
             flash('Пароль должен состоять из 4 цифр.')
             return redirect(url_for('register'))
 
-        # После проверки продолжаем процесс регистрации
         db = get_db()
         db.execute('INSERT INTO users (username, password, role, secret) VALUES (?, ?, ?, ?)',
                    (username, password, 'user', secret))
@@ -68,12 +64,10 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        # Уязвимый SQL запрос, который проверяет и имя пользователя, и пароль
-        query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
+        query = "SELECT * FROM users WHERE username = ? AND password = ?"
         db = get_db()
-        user = db.execute(query).fetchone()
+        user = db.execute(query, (username, password)).fetchone()
 
-        # Проверка, был ли найден пользователь
         if user:
             session['username'] = user[1]
             return redirect(url_for('user_profile', username=user[1]))
@@ -91,7 +85,7 @@ def user_profile(username):
 
     current_user = session['username']
     if current_user != username:
-        abort(403)  # Запрет доступа, если пользователь пытается получить доступ к чужому профилю
+        abort(403)
 
     db = get_db()
     user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
@@ -107,7 +101,6 @@ def ping():
     if request.method == 'POST':
         ip_address = request.form.get('ip_address')
 
-        # Уязвимое место: выполнение команды ping с пользовательским вводом
         result = os.popen(f'ping -c 4 {ip_address}').read()
 
     return render_template('ping.html', result=result)
@@ -117,7 +110,6 @@ def ping():
 def load_image():
     filename = request.args.get('filename')
     if filename:
-        # Предполагая, что изображения хранятся в папке 'images' в корне проекта
         filepath = './static/images/' + filename
         return send_file(filepath)
     else:
@@ -152,11 +144,9 @@ def index():
     db = get_db()
 
     if category:
-        # Выбираем изображения по категории
-        query = f"SELECT * FROM animals WHERE category = '{category}'"
-        images = db.execute(query).fetchall()
+        query = "SELECT * FROM animals WHERE category = ?"
+        images = db.execute(query, (category,)).fetchall()
     else:
-        # Выбираем все данные из таблицы animals
         images = db.execute('SELECT * FROM animals LIMIT 4').fetchall()
 
     return render_template('index.html', images=images, selected_category=category)
