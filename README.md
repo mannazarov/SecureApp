@@ -37,7 +37,44 @@ flask
 ```
 
 ### b. IDOR
+#### Причина Уязвимости
+Уязвимость проявляется в функции user_profile, которая позволяет просматривать информацию о пользователях:
+```
+@app.route('/user/<username>')
+def user_profile(username):
+    if 'username' in session:
+        db = get_db()
+        user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+        if user:
+            return render_template('user_profile.html', user=user)
+        else:
+            abort(404)
+    return redirect(url_for('login'))
+```
+Здесь проверяется только то, что пользователь вошел в систему ('username' in session), но не проверяется, соответствует ли запрашиваемый профиль текущему пользователю сессии. Это позволяет любому аутентифицированному пользователю просматривать или изменять информацию других пользователей, просто изменив имя пользователя в URL.
 
+### Как Исправить
+Чтобы устранить эту уязвимость, необходимо добавить проверку, что текущий пользователь сессии имеет право на доступ к запрашиваемому профилю. Вот как можно изменить код:
+
+```
+@app.route('/user/<username>')
+def user_profile(username):
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    current_user = session['username']
+    if current_user != username:
+        abort(403)  # Запрет доступа, если пользователь пытается получить доступ к чужому профилю
+
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    if user:
+        return render_template('user_profile.html', user=user)
+    else:
+        abort(404)
+
+```
+В этой версии сначала проверяется, аутентифицирован ли пользователь. Затем мы сравниваем имя пользователя в сессии с запрашиваемым именем пользователя. Если они не совпадают, доступ запрещается. Это гарантирует, что пользователи могут взаимодействовать только со своим собственным профилем, предотвращая несанкционированный доступ к данным других пользователей.
 
 ### c. SQLI
 ### d. OS command injection

@@ -86,14 +86,19 @@ def login():
 
 @app.route('/user/<username>')
 def user_profile(username):
-    if 'username' in session:
-        db = get_db()
-        user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-        if user:
-            return render_template('user_profile.html', user=user)
-        else:
-            abort(404)  # Ошибка 404, если пользователь не найден
-    return redirect(url_for('login'))
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    current_user = session['username']
+    if current_user != username:
+        abort(403)  # Запрет доступа, если пользователь пытается получить доступ к чужому профилю
+
+    db = get_db()
+    user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    if user:
+        return render_template('user_profile.html', user=user)
+    else:
+        abort(404)
 
 
 @app.route('/ping', methods=['GET', 'POST'])
